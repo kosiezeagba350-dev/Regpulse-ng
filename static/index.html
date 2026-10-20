@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RegPulse NG — Nigerian Regulatory Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 900: '#14532d' },
+            navy: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1); }
+    .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+  <!-- Header -->
+  <header class="bg-navy-900 text-white sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-primary-500 rounded-lg flex items-center justify-center font-bold text-lg">R</div>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight">RegPulse <span class="text-primary-500">NG</span></h1>
+            <p class="text-xs text-slate-400 -mt-0.5">Automated Regulatory Intelligence</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div id="last-update" class="hidden sm:block text-xs text-slate-400"></div>
+          <button onclick="triggerIngest()" id="refresh-btn" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="stats-grid">
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+        <p class="text-sm text-slate-500 font-medium">Total Updates</p>
+        <p class="text-3xl font-bold text-navy-900 mt-1" id="stat-total">—</p>
+      </div>
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+        <p class="text-sm text-slate-500 font-medium">CBN Items</p>
+        <p class="text-3xl font-bold text-green-700 mt-1" id="stat-cbn">—</p>
+      </div>
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+        <p class="text-sm text-slate-500 font-medium">SEC Items</p>
+        <p class="text-3xl font-bold text-blue-800 mt-1" id="stat-sec">—</p>
+      </div>
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
+        <p class="text-sm text-slate-500 font-medium">Sectors Tracked</p>
+        <p class="text-3xl font-bold text-navy-900 mt-1" id="stat-sectors">—</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 mb-6">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="flex-1">
+          <input type="text" id="search-input" placeholder="Search titles or summaries..." 
+                 class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
+                 onkeyup="if(event.key==='Enter') loadItems()">
+        </div>
+        <select id="regulator-filter" onchange="loadItems()" class="px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white">
+          <option value="">All Regulators</option>
+          <option value="CBN">CBN</option>
+          <option value="SEC">SEC</option>
+        </select>
+        <select id="sector-filter" onchange="loadItems()" class="px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white">
+          <option value="">All Sectors</option>
+          <option value="Fintech / Payments">Fintech / Payments</option>
+          <option value="Virtual Assets / Crypto">Virtual Assets / Crypto</option>
+          <option value="Data Protection">Data Protection</option>
+          <option value="Banking / AML">Banking / AML</option>
+          <option value="Capital Markets">Capital Markets</option>
+          <option value="Energy / Power">Energy / Power</option>
+          <option value="Corporate / Governance">Corporate / Governance</option>
+          <option value="General / Other">General / Other</option>
+        </select>
+        <button onclick="loadItems()" class="px-5 py-2.5 bg-navy-900 text-white rounded-lg text-sm font-medium hover:bg-navy-800 transition">
+          Search
+        </button>
+      </div>
+    </div>
+
+    <!-- Results header -->
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-navy-900">Latest Regulatory Updates</h2>
+      <p class="text-sm text-slate-500" id="result-count"></p>
+    </div>
+
+    <!-- Items list -->
+    <div id="items-container" class="space-y-3">
+      <div class="text-center py-16 text-slate-400">
+        <svg class="w-12 h-12 mx-auto mb-3 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p>Loading regulatory updates...</p>
+      </div>
+    </div>
+
+    <!-- Load more -->
+    <div class="text-center mt-8">
+      <button id="load-more-btn" onclick="loadMore()" class="hidden px-6 py-2.5 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition">
+        Load more
+      </button>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 mt-16 py-8">
+    <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
+      <p class="font-medium text-navy-900">RegPulse NG</p>
+      <p class="mt-1">Fully automated Nigerian regulatory intelligence · CBN · SEC · More coming soon</p>
+      <p class="mt-2 text-xs">Built for top-tier law firms and in-house counsel. Data sourced automatically from official regulator feeds.</p>
+    </div>
+  </footer>
+
+  <script>
+    let offset = 0;
+    const limit = 30;
+    let currentFilters = {};
+
+    async function fetchJSON(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function loadStats() {
+      try {
+        const s = await fetchJSON('/api/stats');
+        document.getElementById('stat-total').textContent = s.total_items.toLocaleString();
+        document.getElementById('stat-cbn').textContent = (s.by_regulator.CBN || 0).toLocaleString();
+        document.getElementById('stat-sec').textContent = (s.by_regulator.SEC || 0).toLocaleString();
+        document.getElementById('stat-sectors').textContent = Object.keys(s.by_sector || {}).length;
+        if (s.latest_update) {
+          const d = new Date(s.latest_update);
+          document.getElementById('last-update').textContent = 'Latest: ' + d.toLocaleString();
+          document.getElementById('last-update').classList.remove('hidden');
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    function regulatorBadge(reg) {
+      const colors = {
+        CBN: 'bg-green-100 text-green-800',
+        SEC: 'bg-blue-100 text-blue-800',
+        NDPC: 'bg-purple-100 text-purple-800',
+        NERC: 'bg-amber-100 text-amber-800'
+      };
+      return `<span class="badge ${colors[reg] || 'bg-slate-100 text-slate-700'}">${reg}</span>`;
+    }
+
+    function sectorBadge(sector) {
+      return `<span class="badge bg-slate-100 text-slate-600">${sector || 'General'}</span>`;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      } catch { return iso; }
+    }
+
+    function renderItems(items, append = false) {
+      const container = document.getElementById('items-container');
+      if (!append) container.innerHTML = '';
+
+      if (items.length === 0 && !append) {
+        container.innerHTML = `
+          <div class="text-center py-16 bg-white rounded-xl border border-slate-100">
+            <p class="text-slate-500">No regulatory updates match your filters.</p>
+            <p class="text-sm text-slate-400 mt-1">Try clearing filters or click Refresh Now.</p>
+          </div>`;
+        document.getElementById('load-more-btn').classList.add('hidden');
+        return;
+      }
+
+      items.forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'bg-white rounded-xl border border-slate-100 p-5 card-hover transition-all duration-200';
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center gap-2 mb-2">
+            ${regulatorBadge(item.regulator)}
+            ${sectorBadge(item.sector)}
+            <span class="badge bg-slate-50 text-slate-500">${item.doc_type || 'Update'}</span>
+            <span class="text-xs text-slate-400 ml-auto">${formatDate(item.published)}</span>
+          </div>
+          <h3 class="font-semibold text-navy-900 text-base leading-snug mb-2">
+            ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener" class="hover:text-primary-600 hover:underline">${item.title}</a>` : item.title}
+          </h3>
+          ${item.summary ? `<p class="text-sm text-slate-600 line-clamp-2 leading-relaxed">${item.summary}</p>` : ''}
+          ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-medium text-primary-600 mt-3 hover:underline">
+            View official document
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>` : ''}
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('result-count').textContent = items.length + (append ? '+' : '') + ' shown';
+      document.getElementById('load-more-btn').classList.toggle('hidden', items.length < limit);
+    }
+
+    async function loadItems(append = false) {
+      if (!append) offset = 0;
+      const q = document.getElementById('search-input').value.trim();
+      const regulator = document.getElementById('regulator-filter').value;
+      const sector = document.getElementById('sector-filter').value;
+
+      const params = new URLSearchParams({ limit, offset });
+      if (q) params.set('q', q);
+      if (regulator) params.set('regulator', regulator);
+      if (sector) params.set('sector', sector);
+
+      try {
+        const items = await fetchJSON('/api/items?' + params.toString());
+        renderItems(items, append);
+        offset += items.length;
+      } catch (e) {
+        console.error(e);
+        document.getElementById('items-container').innerHTML = `
+          <div class="text-center py-12 text-red-500">Failed to load updates. Is the server running?</div>`;
+      }
+    }
+
+    function loadMore() {
+      loadItems(true);
+    }
+
+    async function triggerIngest() {
+      const btn = document.getElementById('refresh-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Refreshing...`;
+      try {
+        await fetch('/api/ingest', { method: 'POST' });
+        setTimeout(() => {
+          loadStats();
+          loadItems();
+          btn.disabled = false;
+          btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh Now`;
+        }, 3000);
+      } catch (e) {
+        btn.disabled = false;
+        btn.innerHTML = 'Refresh Now';
+      }
+    }
+
+    // Init
+    loadStats();
+    loadItems();
+    // Auto-refresh stats every 2 min
+    setInterval(loadStats, 120000);
+  </script>
+</body>
+</html>
